@@ -11,7 +11,6 @@ import android.os.Bundle
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.RecyclerView
-import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.widget.ProgressBar
@@ -20,6 +19,8 @@ import droidkaigi.github.io.challenge2019.data.api.HackerNewsApi
 import droidkaigi.github.io.challenge2019.data.api.response.Item
 import droidkaigi.github.io.challenge2019.data.db.ArticlePreferences
 import droidkaigi.github.io.challenge2019.data.db.ArticlePreferences.Companion.saveArticleIds
+import droidkaigi.github.io.challenge2019.domain.mapper.StoryMapper
+import droidkaigi.github.io.challenge2019.domain.model.Story
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -40,9 +41,9 @@ class MainActivity : BaseActivity() {
     private lateinit var hackerNewsApi: HackerNewsApi
 
     private var getStoriesTask: AsyncTask<Long, Unit, List<Item?>>? = null
-    private val itemJsonAdapter = moshi.adapter(Item::class.java)
+    private val storyJsonAdapter = moshi.adapter(Story::class.java)
     private val itemsJsonAdapter =
-        moshi.adapter<List<Item?>>(Types.newParameterizedType(List::class.java, Item::class.java))
+        moshi.adapter<List<Story?>>(Types.newParameterizedType(List::class.java, Story::class.java))
 
 
     override fun getContentView(): Int {
@@ -64,9 +65,9 @@ class MainActivity : BaseActivity() {
         storyAdapter = StoryAdapter(
             stories = mutableListOf(),
             onClickItem = { item ->
-                val itemJson = itemJsonAdapter.toJson(item)
+                val storyJson = storyJsonAdapter.toJson(item)
                 val intent = Intent(this@MainActivity, StoryActivity::class.java).apply {
-                    putExtra(StoryActivity.EXTRA_ITEM_JSON, itemJson)
+                    putExtra(StoryActivity.EXTRA_ITEM_JSON, storyJson)
                 }
                 startActivityForResult(intent)
             },
@@ -83,7 +84,7 @@ class MainActivity : BaseActivity() {
                                     val index = storyAdapter.stories.indexOf(item)
                                     if (index == -1 ) return
 
-                                    storyAdapter.stories[index] = newItem
+                                    storyAdapter.stories[index] = StoryMapper().translate(newItem)
                                     runOnUiThread {
                                         storyAdapter.alreadyReadStories = ArticlePreferences.getArticleIds(this@MainActivity)
                                         storyAdapter.notifyItemChanged(index)
@@ -162,7 +163,9 @@ class MainActivity : BaseActivity() {
                         override fun onPostExecute(items: List<Item?>) {
                             progressView.visibility = View.GONE
                             swipeRefreshLayout.isRefreshing = false
-                            storyAdapter.stories = items.toMutableList()
+                            storyAdapter.stories = items.map {
+                                it?.let { item -> StoryMapper().translate(item) }
+                            } .toMutableList()
                             storyAdapter.alreadyReadStories = ArticlePreferences.getArticleIds(this@MainActivity)
                             storyAdapter.notifyDataSetChanged()
                         }

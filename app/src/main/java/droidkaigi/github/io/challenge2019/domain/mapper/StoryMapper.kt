@@ -6,6 +6,7 @@ import droidkaigi.github.io.challenge2019.domain.model.Story
 class StoryMapper {
     fun translate(item: Item): Story {
         return Story(
+            id = item.id,
             title = item.title,
             url = item.url,
             score = item.score,

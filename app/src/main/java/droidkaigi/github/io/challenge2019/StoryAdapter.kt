@@ -4,15 +4,14 @@ import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import droidkaigi.github.io.challenge2019.data.api.response.Item
 import droidkaigi.github.io.challenge2019.databinding.ItemStoryBinding
-import droidkaigi.github.io.challenge2019.domain.mapper.StoryMapper
+import droidkaigi.github.io.challenge2019.domain.model.Story
 
 
 class StoryAdapter(
-    var stories: MutableList<Item?>,
-    private val onClickItem: ((Item) -> Unit)? = null,
-    private val onClickMenuItem: ((Item, Int) -> Unit)? = null,
+    var stories: MutableList<Story?>,
+    private val onClickItem: ((Story) -> Unit)? = null,
+    private val onClickMenuItem: ((Story, Int) -> Unit)? = null,
     var alreadyReadStories: Set<String>
 ) : RecyclerView.Adapter<StoryAdapter.ViewHolder>() {
 
@@ -26,18 +25,18 @@ class StoryAdapter(
     override fun getItemCount(): Int = stories.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = stories[position]
+        val story = stories[position]
 
-        if (item != null) {
+        if (story != null) {
             holder.binding.alreadyRead = false
             alreadyReadStories.forEach {id ->
-                if (id.toLong() == item.id) {
+                if (id.toLong() == story.id) {
                     holder.binding.alreadyRead = true
                 }
             }
-            holder.binding.story = StoryMapper().translate(item)
+            holder.binding.story = story
             holder.binding.root.setOnClickListener {
-                onClickItem?.invoke(item)
+                onClickItem?.invoke(story)
             }
             holder.binding.menuButton.setOnClickListener {
                 val popupMenu = PopupMenu(holder.binding.menuButton.context, holder.binding.menuButton)
@@ -47,7 +46,7 @@ class StoryAdapter(
                     when (menuItemId) {
                         R.id.copy_url,
                         R.id.refresh -> {
-                            onClickMenuItem?.invoke(item, menuItemId)
+                            onClickMenuItem?.invoke(story, menuItemId)
                             true
                         }
                         else -> false
