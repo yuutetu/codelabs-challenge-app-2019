@@ -3,13 +3,13 @@ package droidkaigi.github.io.challenge2019
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import droidkaigi.github.io.challenge2019.data.api.response.Item
 import droidkaigi.github.io.challenge2019.databinding.ItemCommentBinding
 import droidkaigi.github.io.challenge2019.domain.mapper.CommentMapper
+import droidkaigi.github.io.challenge2019.domain.model.Comment
 
 
 class CommentAdapter(
-    var comments: List<Item?>
+    var comments: List<Comment?>
 ) : RecyclerView.Adapter<CommentAdapter.ViewHolder>() {
 
     class ViewHolder(val binding: ItemCommentBinding) : RecyclerView.ViewHolder(binding.root)
@@ -22,6 +22,6 @@ class CommentAdapter(
     override fun getItemCount(): Int = comments.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.binding.comment = comments[position]?.let { CommentMapper().translate(it) }
+        holder.binding.comment = comments[position]
     }
 }

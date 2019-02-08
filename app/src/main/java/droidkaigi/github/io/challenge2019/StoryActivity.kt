@@ -17,6 +17,8 @@ import android.widget.ProgressBar
 import com.squareup.moshi.Types
 import droidkaigi.github.io.challenge2019.data.api.HackerNewsApi
 import droidkaigi.github.io.challenge2019.data.api.response.Item
+import droidkaigi.github.io.challenge2019.domain.mapper.CommentMapper
+import droidkaigi.github.io.challenge2019.domain.model.Comment
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -40,11 +42,11 @@ class StoryActivity : BaseActivity() {
 
     private var getCommentsTask: AsyncTask<Long, Unit, List<Item?>>? = null
     private var hideProgressTask: AsyncTask<Unit, Unit, Unit>? = null
-    private val itemJsonAdapter = moshi.adapter(Item::class.java)
-    private val itemsJsonAdapter =
-        moshi.adapter<List<Item?>>(Types.newParameterizedType(List::class.java, Item::class.java))
+    private val commentJsonAdapter = moshi.adapter(Comment::class.java)
+    private val commentsJsonAdapter =
+        moshi.adapter<List<Comment?>>(Types.newParameterizedType(List::class.java, Comment::class.java))
 
-    private var item: Item? = null
+    private var comment: Comment? = null
 
     override fun getContentView(): Int {
         return R.layout.activity_story
@@ -56,8 +58,8 @@ class StoryActivity : BaseActivity() {
         recyclerView = findViewById(R.id.comment_recycler)
         progressView = findViewById(R.id.progress)
 
-        item = intent.getStringExtra(EXTRA_ITEM_JSON)?.let {
-            itemJsonAdapter.fromJson(it)
+        comment = intent.getStringExtra(EXTRA_ITEM_JSON)?.let {
+            commentJsonAdapter.fromJson(it)
         }
 
         val retrofit = createRetrofit("https://hacker-news.firebaseio.com/v0/")
@@ -70,18 +72,18 @@ class StoryActivity : BaseActivity() {
         commentAdapter = CommentAdapter(emptyList())
         recyclerView.adapter = commentAdapter
 
-        if (item == null) return
+        if (comment == null) return
 
         val savedComments = savedInstanceState?.let { bundle ->
             bundle.getString(STATE_COMMENTS)?.let { itemsJson ->
-                itemsJsonAdapter.fromJson(itemsJson)
+                commentsJsonAdapter.fromJson(itemsJson)
             }
         }
 
         if (savedComments != null) {
             commentAdapter.comments = savedComments
             commentAdapter.notifyDataSetChanged()
-            webView.loadUrl(item!!.url)
+            webView.loadUrl(comment!!.url)
             return
         }
 
@@ -90,7 +92,7 @@ class StoryActivity : BaseActivity() {
     }
 
     private fun loadUrlAndComments() {
-        if (item == null) return
+        if (comment == null) return
 
         val progressLatch = CountDownLatch(2)
 
@@ -121,7 +123,7 @@ class StoryActivity : BaseActivity() {
                 progressLatch.countDown()
             }
         }
-        webView.loadUrl(item!!.url)
+        webView.loadUrl(comment!!.url)
 
         getCommentsTask = @SuppressLint("StaticFieldLeak") object : AsyncTask<Long, Unit, List<Item?>>() {
             override fun doInBackground(vararg itemIds: Long?): List<Item?> {
@@ -154,12 +156,12 @@ class StoryActivity : BaseActivity() {
 
             override fun onPostExecute(items: List<Item?>) {
                 progressLatch.countDown()
-                commentAdapter.comments = items
+                commentAdapter.comments = items.map { it?.let { item -> CommentMapper().translate(item) } }
                 commentAdapter.notifyDataSetChanged()
             }
         }
 
-        getCommentsTask?.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, *item!!.kids.toTypedArray())
+        getCommentsTask?.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, *comment!!.kids.toTypedArray())
     }
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
@@ -171,7 +173,7 @@ class StoryActivity : BaseActivity() {
             }
             android.R.id.home -> {
                 val intent = Intent().apply {
-                    putExtra(READ_ARTICLE_ID, this@StoryActivity.item?.id)
+                    putExtra(READ_ARTICLE_ID, this@StoryActivity.comment?.id)
                 }
                 setResult(Activity.RESULT_OK, intent)
                 finish()
@@ -183,7 +185,7 @@ class StoryActivity : BaseActivity() {
 
     override fun onSaveInstanceState(outState: Bundle?) {
         outState?.apply {
-            putString(STATE_COMMENTS, itemsJsonAdapter.toJson(commentAdapter.comments))
+            putString(STATE_COMMENTS, commentsJsonAdapter.toJson(commentAdapter.comments))
         }
 
         super.onSaveInstanceState(outState)

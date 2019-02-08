@@ -6,8 +6,11 @@ import droidkaigi.github.io.challenge2019.domain.model.Comment
 class CommentMapper {
     fun translate(item: Item): Comment {
         return Comment(
+            id = item.id,
             auther = item.author,
-            text = item.text
+            text = item.text,
+            url = item.url,
+            kids = item.kids
         )
     }
 }
