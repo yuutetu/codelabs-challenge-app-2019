@@ -19,8 +19,12 @@ import droidkaigi.github.io.challenge2019.data.api.HackerNewsApi
 import droidkaigi.github.io.challenge2019.data.api.response.Item
 import droidkaigi.github.io.challenge2019.data.db.ArticlePreferences
 import droidkaigi.github.io.challenge2019.data.db.ArticlePreferences.Companion.saveArticleIds
+import droidkaigi.github.io.challenge2019.data.repository.GetStoryRepository
 import droidkaigi.github.io.challenge2019.domain.mapper.StoryMapper
 import droidkaigi.github.io.challenge2019.domain.model.Story
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.rxkotlin.addTo
+import io.reactivex.rxkotlin.subscribeBy
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -44,6 +48,7 @@ class MainActivity : BaseActivity() {
     private val storyJsonAdapter = moshi.adapter(Story::class.java)
     private val itemsJsonAdapter =
         moshi.adapter<List<Story?>>(Types.newParameterizedType(List::class.java, Story::class.java))
+    private val disposable = CompositeDisposable()
 
 
     override fun getContentView(): Int {
@@ -78,24 +83,19 @@ class MainActivity : BaseActivity() {
                         clipboard.primaryClip = ClipData.newPlainText("url", item.url)
                     }
                     R.id.refresh -> {
-                        hackerNewsApi.getItem(item.id).enqueue(object : Callback<Item> {
-                            override fun onResponse(call: Call<Item>, response: Response<Item>) {
-                                response.body()?.let { newItem ->
-                                    val index = storyAdapter.stories.indexOf(item)
-                                    if (index == -1 ) return
-
-                                    storyAdapter.stories[index] = StoryMapper().translate(newItem)
-                                    runOnUiThread {
-                                        storyAdapter.alreadyReadStories = ArticlePreferences.getArticleIds(this@MainActivity)
-                                        storyAdapter.notifyItemChanged(index)
-                                    }
+                        GetStoryRepository().getStory(item.id).subscribeBy(
+                            onSuccess = {
+                                val index = storyAdapter.stories.indexOf(item)
+                                storyAdapter.stories[index] = it
+                                runOnUiThread {
+                                    storyAdapter.alreadyReadStories = ArticlePreferences.getArticleIds(this@MainActivity)
+                                    storyAdapter.notifyItemChanged(index)
                                 }
+                            },
+                            onError = { throwable ->
+                                showError(throwable)
                             }
-
-                            override fun onFailure(call: Call<Item>, t: Throwable) {
-                                showError(t)
-                            }
-                        })
+                        ).addTo(disposable)
                     }
                 }
             },

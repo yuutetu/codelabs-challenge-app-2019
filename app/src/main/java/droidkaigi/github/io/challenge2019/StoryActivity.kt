@@ -17,6 +17,7 @@ import android.widget.ProgressBar
 import com.squareup.moshi.Types
 import droidkaigi.github.io.challenge2019.data.api.HackerNewsApi
 import droidkaigi.github.io.challenge2019.data.api.response.Item
+import droidkaigi.github.io.challenge2019.data.repository.GetStoryRepository
 import droidkaigi.github.io.challenge2019.domain.mapper.CommentMapper
 import droidkaigi.github.io.challenge2019.domain.model.Comment
 import retrofit2.Call
