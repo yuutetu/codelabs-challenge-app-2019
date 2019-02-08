@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import droidkaigi.github.io.challenge2019.data.api.response.Item
 import droidkaigi.github.io.challenge2019.databinding.ItemStoryBinding
+import droidkaigi.github.io.challenge2019.domain.mapper.StoryMapper
 
 
 class StoryAdapter(
@@ -34,7 +35,7 @@ class StoryAdapter(
                     holder.binding.alreadyRead = true
                 }
             }
-            holder.binding.item = item
+            holder.binding.story = StoryMapper().translate(item)
             holder.binding.root.setOnClickListener {
                 onClickItem?.invoke(item)
             }
@@ -55,7 +56,7 @@ class StoryAdapter(
                 popupMenu.show()
             }
         } else {
-            holder.binding.item = null
+            holder.binding.story = null
             holder.binding.root.setOnClickListener(null)
             holder.binding.menuButton.setOnClickListener(null)
         }
